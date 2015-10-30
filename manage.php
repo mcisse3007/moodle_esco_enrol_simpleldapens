@@ -208,7 +208,14 @@ array_push($attributes, "escouaicourant");
 ////////////////////////////////////////////////
 
 $userValues = $ldapselector->get_userAttributeMultiple($username,$attributes);
-
+//print_r($userValues);
+//On recupere l'escouaiCourant si il y en a qu'un
+$ecouaiCourant = 0;
+if($userValues['escouaicourant'][count]==1){
+	$escouaiCourant = $userValues['escouaicourant'][0];
+}else{
+// A LOGGER LE FAIT QU'ON AIT PLUSIEURS OU AUCUN ETABLISSEMENT COURANT //=>VOIR COMMENT MOODLE LOG
+}
 
 //Create the list to be shown before the enrol_simpleldap_potential_participant to initialize the potentialuserselector.
 
@@ -246,10 +253,8 @@ for ($i = 1; $i <= $nb_filter ; $i++){
                 $siren = $ldapselector->getSirenFromUai($_POST['code1']);
         }else{
         	
-	$interestUai = array_keys($myListe);	
-        $siren = $ldapselector->getSirenFromUai($interestUai[$enrol_simpleldap->getConfig('filter'.$i.'_mandatory')]);
-
-        
+        $siren = $ldapselector->getSirenFromUai($escouaiCourant);
+     
 }
             
 
@@ -258,21 +263,21 @@ for ($i = 1; $i <= $nb_filter ; $i++){
 
 		}
 	$nomFonction = 'pre_process'.$i;
+
 	$ldapFilter = call_user_func($nomFonction, $ldapFilter);
-	
+
 
 	$listTmp = $ldapselector->get_listFilter($i, $ldapFilter);
-	
+		
 	//Post traitement sur les résultat provenant du LDAP.
 	$nomFonction = 'post_process'.$i;
-	$listTmp = call_user_func($nomFonction, $listTmp, $siren);
 	
-    $myListe  = $ldapselector->matchLDAPValues($listTmp, $userValues, $i); 
+	$listTmp = call_user_func($nomFonction, $listTmp, $siren);
 
-	//echo("--------------------liste".$i."-------------\n");
-	//var_dump($myListe);
-	//echo("--------------------fin liste".$i."-------------\n");
-	asort($myListe);
+	
+		
+        $myListe  = $ldapselector->matchLDAPValues($listTmp, $userValues, $i);
+	 
    	$list[$i] = $myListe; 
 	$nomvar = 'code'.$i;
 	if (count($list[$i]) == 0 ){
@@ -284,6 +289,9 @@ for ($i = 1; $i <= $nb_filter ; $i++){
 		
 		if ($enrol_simpleldap->getConfig('filter'.$i.'_mandatory') && $$nomvar == ''){
 			$$nomvar = array_shift(array_keys($list[$i]));
+			if($i==1 && array_key_exists($escouaiCourant,$list[$i])){
+				$$nomvar = $escouaiCourant;
+				}
 		}	
 
 		$defaultAttr = $enrol_simpleldap->getConfig('filter'.$i.'_default');
